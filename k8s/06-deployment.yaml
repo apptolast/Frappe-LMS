@@ -128,12 +128,33 @@ spec:
               memory: "512Mi"
               cpu: "500m"
       containers:
+        # Nginx para servir assets estáticos
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          volumeMounts:
+            - name: sites
+              mountPath: /home/frappe/frappe-bench/sites
+              readOnly: true
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
         # Contenedor principal: Gunicorn (web server)
         - name: web
           image: apptolast/frappe-lms:latest
           imagePullPolicy: Always
           ports:
-            - name: http
+            - name: gunicorn
               containerPort: 8000
               protocol: TCP
           volumeMounts:
@@ -191,6 +212,9 @@ spec:
         - name: config
           configMap:
             name: frappe-lms-config
+        - name: nginx-config
+          configMap:
+            name: nginx-config
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
 ---
