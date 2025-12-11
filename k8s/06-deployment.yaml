@@ -8,7 +8,7 @@ metadata:
     environment: production
     version: v1
 spec:
-  replicas: 2
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -25,7 +25,45 @@ spec:
         environment: production
         version: v1
     spec:
+      securityContext:
+        fsGroup: 1000
       initContainers:
+        # Init container para arreglar permisos
+        - name: fix-permissions
+          image: busybox:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              chown -R 1000:1000 /sites /logs
+              chmod -R 755 /sites /logs
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: sites
+              mountPath: /sites
+            - name: logs
+              mountPath: /logs
+        # Init container para copiar archivos base de sites
+        - name: copy-sites-base
+          image: apptolast/frappe-lms:latest
+          imagePullPolicy: Always
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              # Si apps.txt no existe en el volumen, copiar archivos base
+              if [ ! -f "/mnt/sites/apps.txt" ]; then
+                echo "Copiando archivos base de sites..."
+                cp -a /home/frappe/frappe-bench/sites/. /mnt/sites/
+                echo "Archivos copiados"
+              else
+                echo "Sites ya inicializado"
+              fi
+          volumeMounts:
+            - name: sites
+              mountPath: /mnt/sites
         # Init container para configurar el site si no existe
         - name: site-init
           image: apptolast/frappe-lms:latest
@@ -59,6 +97,10 @@ spec:
                 echo "Site ya existe, ejecutando migraciones..."
                 bench --site lms.localhost migrate || true
               fi
+              
+              # Crear symlink para el dominio academy.apptolast.com
+              ln -sf lms.localhost sites/academy.apptolast.com
+              echo "Symlink academy.apptolast.com creado"
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -80,10 +122,10 @@ spec:
               readOnly: true
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "250m"
+              memory: "256Mi"
+              cpu: "100m"
             limits:
-              memory: "1Gi"
+              memory: "512Mi"
               cpu: "500m"
       containers:
         # Contenedor principal: Gunicorn (web server)
@@ -101,15 +143,18 @@ spec:
               mountPath: /home/frappe/frappe-bench/logs
           resources:
             requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
               memory: "512Mi"
               cpu: "500m"
-            limits:
-              memory: "1Gi"
-              cpu: "1000m"
           livenessProbe:
             httpGet:
               path: /api/method/ping
               port: 8000
+              httpHeaders:
+                - name: Host
+                  value: lms.localhost
             initialDelaySeconds: 60
             periodSeconds: 15
             timeoutSeconds: 5
@@ -118,6 +163,9 @@ spec:
             httpGet:
               path: /api/method/ping
               port: 8000
+              httpHeaders:
+                - name: Host
+                  value: lms.localhost
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 3
@@ -126,6 +174,9 @@ spec:
             httpGet:
               path: /api/method/ping
               port: 8000
+              httpHeaders:
+                - name: Host
+                  value: lms.localhost
             initialDelaySeconds: 0
             periodSeconds: 10
             timeoutSeconds: 5

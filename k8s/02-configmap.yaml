@@ -18,6 +18,7 @@ data:
       "socketio_port": 9000,
       "webserver_port": 8000,
       "serve_default_site": true,
+      "default_site": "lms.localhost",
       "auto_update": false,
       "maintenance_mode": 0,
       "pause_scheduler": 0

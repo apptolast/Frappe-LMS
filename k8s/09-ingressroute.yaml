@@ -10,7 +10,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`lms.apptolast.com`)
+    - match: Host(`academy.apptolast.com`)
       kind: Rule
       services:
         - name: frappe-lms

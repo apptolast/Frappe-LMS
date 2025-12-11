@@ -9,6 +9,6 @@ spec:
     name: cloudflare-clusterissuer
     kind: ClusterIssuer
   dnsNames:
-    - lms.apptolast.com
+    - academy.apptolast.com
   duration: 2160h  # 90 days
   renewBefore: 720h  # 30 days before expiration
