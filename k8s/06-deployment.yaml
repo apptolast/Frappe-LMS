@@ -1,0 +1,244 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frappe-lms
+  namespace: apptolast-frappe-lms
+  labels:
+    app: frappe-lms
+    environment: production
+    version: v1
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: frappe-lms
+      environment: production
+  template:
+    metadata:
+      labels:
+        app: frappe-lms
+        environment: production
+        version: v1
+    spec:
+      initContainers:
+        # Init container para configurar el site si no existe
+        - name: site-init
+          image: apptolast/frappe-lms:latest
+          imagePullPolicy: Always
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              cd /home/frappe/frappe-bench
+
+              # Copiar configuración común
+              if [ -f /config/common_site_config.json ]; then
+                cp /config/common_site_config.json sites/common_site_config.json
+              fi
+
+              # Verificar si el site ya existe
+              if [ ! -d "sites/lms.localhost" ]; then
+                echo "Creando nuevo site..."
+                bench new-site lms.localhost \
+                  --mariadb-root-password "$MYSQL_ROOT_PASSWORD" \
+                  --admin-password "$FRAPPE_ADMIN_PASSWORD" \
+                  --db-host mariadb-frappe-lms \
+                  --no-mariadb-socket
+
+                bench --site lms.localhost install-app lms
+                bench --site lms.localhost set-config developer_mode 0
+                bench use lms.localhost
+                echo "Site creado exitosamente"
+              else
+                echo "Site ya existe, ejecutando migraciones..."
+                bench --site lms.localhost migrate || true
+              fi
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: frappe-lms-secret
+                  key: MYSQL_ROOT_PASSWORD
+            - name: FRAPPE_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: frappe-lms-secret
+                  key: FRAPPE_ADMIN_PASSWORD
+          volumeMounts:
+            - name: sites
+              mountPath: /home/frappe/frappe-bench/sites
+            - name: logs
+              mountPath: /home/frappe/frappe-bench/logs
+            - name: config
+              mountPath: /config
+              readOnly: true
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+      containers:
+        # Contenedor principal: Gunicorn (web server)
+        - name: web
+          image: apptolast/frappe-lms:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          volumeMounts:
+            - name: sites
+              mountPath: /home/frappe/frappe-bench/sites
+            - name: logs
+              mountPath: /home/frappe/frappe-bench/logs
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            httpGet:
+              path: /api/method/ping
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/method/ping
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /api/method/ping
+              port: 8000
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: frappe-lms-sites
+        - name: logs
+          persistentVolumeClaim:
+            claimName: frappe-lms-logs
+        - name: config
+          configMap:
+            name: frappe-lms-config
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+---
+# Deployment para el worker de Frappe (background jobs)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frappe-lms-worker
+  namespace: apptolast-frappe-lms
+  labels:
+    app: frappe-lms-worker
+    environment: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frappe-lms-worker
+  template:
+    metadata:
+      labels:
+        app: frappe-lms-worker
+        environment: production
+    spec:
+      containers:
+        - name: worker
+          image: apptolast/frappe-lms:latest
+          imagePullPolicy: Always
+          command:
+            - /home/frappe/frappe-bench/env/bin/python
+            - -m
+            - frappe.utils.background_jobs
+          workingDir: /home/frappe/frappe-bench/sites
+          volumeMounts:
+            - name: sites
+              mountPath: /home/frappe/frappe-bench/sites
+            - name: logs
+              mountPath: /home/frappe/frappe-bench/logs
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: frappe-lms-sites
+        - name: logs
+          persistentVolumeClaim:
+            claimName: frappe-lms-logs
+      restartPolicy: Always
+---
+# Deployment para el scheduler de Frappe (tareas programadas)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frappe-lms-scheduler
+  namespace: apptolast-frappe-lms
+  labels:
+    app: frappe-lms-scheduler
+    environment: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frappe-lms-scheduler
+  template:
+    metadata:
+      labels:
+        app: frappe-lms-scheduler
+        environment: production
+    spec:
+      containers:
+        - name: scheduler
+          image: apptolast/frappe-lms:latest
+          imagePullPolicy: Always
+          command:
+            - /home/frappe/frappe-bench/env/bin/python
+            - -m
+            - frappe.utils.scheduler
+          workingDir: /home/frappe/frappe-bench/sites
+          volumeMounts:
+            - name: sites
+              mountPath: /home/frappe/frappe-bench/sites
+            - name: logs
+              mountPath: /home/frappe/frappe-bench/logs
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: sites
+          persistentVolumeClaim:
+            claimName: frappe-lms-sites
+        - name: logs
+          persistentVolumeClaim:
+            claimName: frappe-lms-logs
+      restartPolicy: Always

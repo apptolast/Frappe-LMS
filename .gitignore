@@ -1,16 +1,104 @@
+# ============================================
+# OS and Editor files
+# ============================================
 .DS_Store
-*.pyc
-*.egg-info
+Thumbs.db
 *.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.sublime-*
 tags
-lms/docs/current
-lms/public/dist
-__pycache__/
+
+# ============================================
+# Python
+# ============================================
+*.pyc
+*.pyo
+*.pyd
 *.py[cod]
 *$py.class
-node_modules
+*.egg-info
+__pycache__/
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.eggs/
+*.egg
+dist/
+build/
+*.manifest
+*.spec
+
+# ============================================
+# Node.js
+# ============================================
+node_modules/
 package-lock.json
+yarn-error.log
+npm-debug.log*
+.npm
+.yarn-integrity
+
+# ============================================
+# Frappe / LMS specific
+# ============================================
+lms/docs/current
+lms/public/dist
 lms/public/frontend
 lms/www/lms.html
 lms/www/_lms.html
 frappe-ui
+sites/
+logs/
+*.log
+
+# ============================================
+# Kubernetes - SENSITIVE FILES
+# Estos archivos contienen configuración sensible
+# y NO deben subirse al repositorio
+# ============================================
+k8s/01-secret.yaml
+
+# ============================================
+# Environment and credentials
+# ============================================
+.env
+.env.local
+.env.*.local
+*.env
+.envrc
+*.pem
+*.key
+*.crt
+secrets/
+credentials/
+
+# ============================================
+# Docker
+# ============================================
+docker-compose.override.yml
+
+# ============================================
+# Test and coverage
+# ============================================
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# ============================================
+# Misc
+# ============================================
+*.tmp
+*.temp
+*.bak
+*.backup
+.cache/

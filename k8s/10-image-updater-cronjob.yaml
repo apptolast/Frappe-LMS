@@ -1,0 +1,102 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: image-updater
+  namespace: apptolast-frappe-lms
+  labels:
+    app: image-updater
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: image-updater
+  namespace: apptolast-frappe-lms
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "patch", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: image-updater
+  namespace: apptolast-frappe-lms
+subjects:
+  - kind: ServiceAccount
+    name: image-updater
+    namespace: apptolast-frappe-lms
+roleRef:
+  kind: Role
+  name: image-updater
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: image-updater
+  namespace: apptolast-frappe-lms
+  labels:
+    app: image-updater
+    environment: production
+spec:
+  # Ejecutar cada 12 horas (00:00 y 12:00)
+  schedule: "0 */12 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: image-updater
+        spec:
+          serviceAccountName: image-updater
+          restartPolicy: OnFailure
+          containers:
+            - name: kubectl
+              image: bitnami/kubectl:latest
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  echo "=== Image Updater - Frappe LMS ==="
+                  echo "Timestamp: $(date)"
+                  echo "Namespace: apptolast-frappe-lms"
+                  echo ""
+
+                  echo "Current deployment status:"
+                  kubectl get deployment frappe-lms -n apptolast-frappe-lms
+                  echo ""
+
+                  echo "Triggering rolling restart to pull latest image..."
+                  kubectl rollout restart deployment/frappe-lms -n apptolast-frappe-lms
+                  kubectl rollout restart deployment/frappe-lms-worker -n apptolast-frappe-lms
+                  kubectl rollout restart deployment/frappe-lms-scheduler -n apptolast-frappe-lms
+                  echo ""
+
+                  echo "Waiting for rollout to complete (timeout: 10min)..."
+                  kubectl rollout status deployment/frappe-lms -n apptolast-frappe-lms --timeout=10m
+                  echo ""
+
+                  echo "New deployment status:"
+                  kubectl get deployment frappe-lms -n apptolast-frappe-lms
+                  echo ""
+
+                  echo "Pods status:"
+                  kubectl get pods -n apptolast-frappe-lms -l app=frappe-lms
+                  echo ""
+
+                  echo "✅ Image update completed successfully!"
+              resources:
+                requests:
+                  memory: "64Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "128Mi"
+                  cpu: "200m"

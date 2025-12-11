@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: apptolast-frappe-lms
+  labels:
+    name: apptolast-frappe-lms
+    app: frappe-lms
+    environment: production
+    managed-by: kubectl

@@ -1,0 +1,68 @@
+# Ignorar archivos que no son necesarios en la imagen Docker
+.git
+.github
+.gitmodules
+.gitignore
+.editorconfig
+.eslintrc
+.flake8
+.pre-commit-config.yaml
+.releaserc
+
+# Archivos de documentación
+*.md
+!README.md
+docs/
+
+# Archivos de test
+cypress/
+cypress.config.js
+**/tests/
+**/*_test.py
+**/test_*.py
+
+# Archivos de desarrollo
+.vscode/
+.idea/
+*.log
+yarn-error.log
+
+# Node modules (se reconstruyen en el build)
+node_modules/
+frontend/node_modules/
+frappe-ui/node_modules/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Archivos temporales
+*.tmp
+*.temp
+.cache/
+.DS_Store
+Thumbs.db
+
+# Docker
+docker/
+docker-compose*.yml
+Dockerfile*
+!Dockerfile
+
+# Kubernetes (se despliegan por separado)
+k8s/
+
+# CI/CD configs
+.travis.yml
+Jenkinsfile
+crowdin.yml
+commitlint.config.js
