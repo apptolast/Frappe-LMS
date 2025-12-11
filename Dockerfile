@@ -1,6 +1,6 @@
 # ============================================
 # Frappe LMS Docker Image
-# Basado en el workflow oficial de frappe_docker
+# Utiliza el método oficial de frappe_docker
 # ============================================
 ARG FRAPPE_BRANCH=version-15
 
@@ -11,19 +11,21 @@ FROM frappe/build:${FRAPPE_BRANCH} AS builder
 
 ARG FRAPPE_BRANCH=version-15
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
+# URL del repositorio LMS - usamos la versión de apptolast
+ARG LMS_REPO=https://github.com/apptolast/Frappe-LMS
+ARG LMS_BRANCH=apptolast
 
 USER root
 
 # Crear directorio para apps.json
-RUN mkdir -p /opt/frappe
+RUN mkdir -p /opt/frappe && \
+    echo '[{"url": "'${LMS_REPO}'", "branch": "'${LMS_BRANCH}'"}]' > /opt/frappe/apps.json
 
 USER frappe
 
-# Copiar el código de la aplicación LMS
-COPY --chown=frappe:frappe . /tmp/lms-app
-
-# Inicializar bench con Frappe
+# Inicializar bench con Frappe y la app LMS
 RUN bench init \
+    --apps_path=/opt/frappe/apps.json \
     --frappe-branch=${FRAPPE_BRANCH} \
     --frappe-path=${FRAPPE_PATH} \
     --no-procfile \
@@ -34,17 +36,11 @@ RUN bench init \
 
 WORKDIR /home/frappe/frappe-bench
 
-# Instalar la aplicación LMS desde el código local
-RUN bench get-app /tmp/lms-app --skip-assets
-
 # Configurar el site
 RUN echo "{}" > sites/common_site_config.json
 
 # Limpiar directorios .git para reducir tamaño
 RUN find apps -mindepth 1 -path "*/.git" | xargs rm -fr
-
-# Build de assets
-RUN bench build --app lms
 
 # ============================================
 # Stage 2: Runtime stage
