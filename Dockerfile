@@ -17,9 +17,9 @@ ARG LMS_BRANCH=apptolast
 
 USER root
 
-# Crear directorio para apps.json
+# Crear directorio para apps.json (incluye payments app para pagos)
 RUN mkdir -p /opt/frappe && \
-    echo '[{"url": "'${LMS_REPO}'", "branch": "'${LMS_BRANCH}'"}]' > /opt/frappe/apps.json
+    echo '[{"url": "https://github.com/frappe/payments", "branch": "version-15"}, {"url": "'${LMS_REPO}'", "branch": "'${LMS_BRANCH}'"}]' > /opt/frappe/apps.json
 
 USER frappe
 
