@@ -22,5 +22,6 @@ data:
       "auto_update": false,
       "maintenance_mode": 0,
       "pause_scheduler": 0,
-      "host_name": "https://academy.apptolast.com"
+      "host_name": "https://academy.apptolast.com",
+      "allow_cors": ["https://academy.apptolast.com"]
     }

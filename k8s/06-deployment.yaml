@@ -183,7 +183,7 @@ spec:
             - |
               cd /home/frappe/frappe-bench
               
-              # Inject PayPal credentials into site_config using jq-like approach with Python
+              # Inject PayPal credentials and CORS config into site_config
               SITE_CONFIG="/home/frappe/frappe-bench/sites/lms.localhost/site_config.json"
               if [ -f "$SITE_CONFIG" ]; then
                 python3 -c "
@@ -194,15 +194,18 @@ spec:
                   c['sandbox_api_username'] = os.environ.get('PAYPAL_SANDBOX_USERNAME', '')
                   c['sandbox_api_password'] = os.environ.get('PAYPAL_SANDBOX_PASSWORD', '')
                   c['sandbox_signature'] = os.environ.get('PAYPAL_SANDBOX_SIGNATURE', '')
+                  c['allow_cors'] = ['https://academy.apptolast.com']
+                  c['host_name'] = 'https://academy.apptolast.com'
                   with open('$SITE_CONFIG', 'w') as f:
                       json.dump(c, f, indent=2)
-                  print('PayPal credentials injected')
+                  print('Config injected: PayPal + CORS')
               except Exception as e:
                   print(f'Warning: {e}')
               "
               fi
               
-              # Start socketio in background
+              # Start socketio in background with proper site name
+              export FRAPPE_SITE_NAME_HEADER=lms.localhost
               node /home/frappe/frappe-bench/apps/frappe/socketio.js &
               
               # Start gunicorn in foreground
