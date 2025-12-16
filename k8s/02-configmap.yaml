@@ -7,7 +7,7 @@ metadata:
     app: frappe-lms
     environment: production
 data:
-  # Configuración común del site de Frappe
+  # Configuración común del site de Frappe (sin credenciales sensibles)
   common_site_config.json: |
     {
       "db_host": "mariadb-frappe-lms",
@@ -21,5 +21,6 @@ data:
       "default_site": "lms.localhost",
       "auto_update": false,
       "maintenance_mode": 0,
-      "pause_scheduler": 0
+      "pause_scheduler": 0,
+      "host_name": "https://academy.apptolast.com"
     }

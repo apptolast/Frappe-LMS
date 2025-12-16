@@ -149,14 +149,73 @@ spec:
             limits:
               memory: "128Mi"
               cpu: "100m"
-        # Contenedor principal: Gunicorn (web server)
-        - name: web
+        # Contenedor frappe-lms (incluye gunicorn y socketio)
+        - name: frappe-lms
           image: apptolast/frappe-lms:latest
           imagePullPolicy: Always
           ports:
             - name: gunicorn
               containerPort: 8000
               protocol: TCP
+            - name: socketio
+              containerPort: 9000
+              protocol: TCP
+          env:
+            # PayPal Sandbox credentials from secret
+            - name: PAYPAL_SANDBOX_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: frappe-lms-secret
+                  key: PAYPAL_SANDBOX_USERNAME
+            - name: PAYPAL_SANDBOX_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: frappe-lms-secret
+                  key: PAYPAL_SANDBOX_PASSWORD
+            - name: PAYPAL_SANDBOX_SIGNATURE
+              valueFrom:
+                secretKeyRef:
+                  name: frappe-lms-secret
+                  key: PAYPAL_SANDBOX_SIGNATURE
+          command:
+            - /bin/bash
+            - -c
+            - |
+              cd /home/frappe/frappe-bench
+              
+              # Inject PayPal credentials into site_config using jq-like approach with Python
+              SITE_CONFIG="/home/frappe/frappe-bench/sites/lms.localhost/site_config.json"
+              if [ -f "$SITE_CONFIG" ]; then
+                python3 -c "
+              import json, os
+              try:
+                  with open('$SITE_CONFIG', 'r') as f:
+                      c = json.load(f)
+                  c['sandbox_api_username'] = os.environ.get('PAYPAL_SANDBOX_USERNAME', '')
+                  c['sandbox_api_password'] = os.environ.get('PAYPAL_SANDBOX_PASSWORD', '')
+                  c['sandbox_signature'] = os.environ.get('PAYPAL_SANDBOX_SIGNATURE', '')
+                  with open('$SITE_CONFIG', 'w') as f:
+                      json.dump(c, f, indent=2)
+                  print('PayPal credentials injected')
+              except Exception as e:
+                  print(f'Warning: {e}')
+              "
+              fi
+              
+              # Start socketio in background
+              node /home/frappe/frappe-bench/apps/frappe/socketio.js &
+              
+              # Start gunicorn in foreground
+              exec /home/frappe/frappe-bench/env/bin/gunicorn \
+                --chdir=/home/frappe/frappe-bench/sites \
+                --bind=0.0.0.0:8000 \
+                --threads=4 \
+                --workers=2 \
+                --worker-class=gthread \
+                --worker-tmp-dir=/dev/shm \
+                --timeout=120 \
+                --preload \
+                frappe.app:application
           volumeMounts:
             - name: sites
               mountPath: /home/frappe/frappe-bench/sites
@@ -164,11 +223,11 @@ spec:
               mountPath: /home/frappe/frappe-bench/logs
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "100m"
-            limits:
               memory: "512Mi"
-              cpu: "500m"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
           livenessProbe:
             httpGet:
               path: /api/method/ping
