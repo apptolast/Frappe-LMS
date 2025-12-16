@@ -15,6 +15,12 @@ spec:
       services:
         - name: frappe-lms
           port: 8000
+          # Sticky sessions para WebSocket
+          sticky:
+            cookie:
+              name: frappe_session
+              secure: true
+              httpOnly: true
       middlewares:
         - name: security-headers
   tls:
