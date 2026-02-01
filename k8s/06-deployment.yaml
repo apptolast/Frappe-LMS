@@ -103,6 +103,15 @@ spec:
               # Crear symlink para el dominio academy.apptolast.com
               ln -sf lms.localhost sites/academy.apptolast.com
               echo "Symlink academy.apptolast.com creado"
+
+              # Build de assets si no existen para ERPNext/Education
+              if ! grep -q "erpnext" sites/assets/assets.json 2>/dev/null; then
+                echo "Building assets para ERPNext/Education..."
+                export NODE_OPTIONS="--max-old-space-size=4096"
+                bench build --production || echo "Warning: bench build failed, continuing..."
+              else
+                echo "Assets ya compilados"
+              fi
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -124,11 +133,11 @@ spec:
               readOnly: true
           resources:
             requests:
-              memory: "512Mi"
-              cpu: "200m"
+              memory: "1Gi"
+              cpu: "500m"
             limits:
-              memory: "2Gi"
-              cpu: "1000m"
+              memory: "4Gi"
+              cpu: "2000m"
       containers:
         # Nginx para servir assets estáticos
         - name: nginx
