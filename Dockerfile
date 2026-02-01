@@ -21,7 +21,7 @@ USER root
 # Orden de apps: payments, erpnext, lms, education
 # (erpnext es requerido por education según documentación oficial)
 RUN mkdir -p /opt/frappe && \
-    echo '[{"url": "https://github.com/frappe/payments", "branch": "version-15"}, {"url": "https://github.com/frappe/erpnext", "branch": "develop"}, {"url": "'${LMS_REPO}'", "branch": "'${LMS_BRANCH}'"}, {"url": "https://github.com/frappe/education", "branch": "develop"}]' > /opt/frappe/apps.json
+    echo '[{"url": "https://github.com/frappe/payments", "branch": "version-15"}, {"url": "https://github.com/frappe/erpnext", "branch": "version-15"}, {"url": "'${LMS_REPO}'", "branch": "'${LMS_BRANCH}'"}, {"url": "https://github.com/frappe/education", "branch": "develop"}]' > /opt/frappe/apps.json
 
 USER frappe
 
