@@ -113,21 +113,30 @@ spec:
                 echo "Assets ya compilados"
               fi
 
-              # Reemplazar symlinks con directorios reales para que nginx pueda servir assets
-              # (nginx no tiene acceso al directorio /apps/)
-              echo "Copiando assets para nginx..."
+              # IMPORTANTE: Reemplazar symlinks con directorios reales para que nginx pueda servir assets
+              # (nginx solo monta /sites/ y no tiene acceso al directorio /apps/)
+              # Esto DEBE ejecutarse SIEMPRE al final, porque bench build/migrate puede recrear los symlinks
+              echo "Convirtiendo symlinks de assets a directorios para nginx..."
               cd /home/frappe/frappe-bench
+              converted=0
               for app in frappe erpnext lms payments education; do
                 if [ -L "sites/assets/$app" ]; then
                   target=$(readlink -f "sites/assets/$app")
                   if [ -d "$target" ]; then
                     rm "sites/assets/$app"
                     cp -r "$target" "sites/assets/$app"
-                    echo "Copiado: $app"
+                    echo "  Convertido: $app (symlink -> directorio)"
+                    converted=$((converted + 1))
+                  else
+                    echo "  ADVERTENCIA: $app apunta a $target que no existe"
                   fi
+                elif [ -d "sites/assets/$app" ]; then
+                  echo "  OK: $app ya es un directorio"
+                else
+                  echo "  ADVERTENCIA: $app no existe"
                 fi
               done
-              echo "Assets copiados correctamente"
+              echo "Assets procesados: $converted symlinks convertidos"
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
