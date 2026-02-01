@@ -2,14 +2,14 @@
 # Frappe LMS Docker Image
 # Utiliza el método oficial de frappe_docker
 # ============================================
-ARG FRAPPE_BRANCH=version-15
+ARG FRAPPE_BRANCH=develop
 
 # ============================================
 # Stage 1: Build stage
 # ============================================
 FROM frappe/build:${FRAPPE_BRANCH} AS builder
 
-ARG FRAPPE_BRANCH=version-15
+ARG FRAPPE_BRANCH=develop
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
 # URL del repositorio LMS - usamos la versión de apptolast
 ARG LMS_REPO=https://github.com/apptolast/Frappe-LMS
@@ -21,7 +21,7 @@ USER root
 # Orden de apps: payments, erpnext, lms, education
 # (erpnext es requerido por education según documentación oficial)
 RUN mkdir -p /opt/frappe && \
-    echo '[{"url": "https://github.com/frappe/payments", "branch": "version-15"}, {"url": "https://github.com/frappe/erpnext", "branch": "version-15"}, {"url": "'${LMS_REPO}'", "branch": "'${LMS_BRANCH}'"}, {"url": "https://github.com/frappe/education", "branch": "develop"}]' > /opt/frappe/apps.json
+    echo '[{"url": "https://github.com/frappe/payments", "branch": "develop"}, {"url": "https://github.com/frappe/erpnext", "branch": "develop"}, {"url": "'${LMS_REPO}'", "branch": "'${LMS_BRANCH}'"}, {"url": "https://github.com/frappe/education", "branch": "develop"}]' > /opt/frappe/apps.json
 
 USER frappe
 
