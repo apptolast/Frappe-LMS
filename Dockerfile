@@ -11,9 +11,9 @@ FROM frappe/build:${FRAPPE_BRANCH} AS builder
 
 ARG FRAPPE_BRANCH=develop
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
-# URL del repositorio LMS - usamos la versión de apptolast
-ARG LMS_REPO=https://github.com/apptolast/Frappe-LMS
-ARG LMS_BRANCH=apptolast
+# URL del repositorio LMS - usamos la versión oficial develop
+ARG LMS_REPO=https://github.com/frappe/lms
+ARG LMS_BRANCH=develop
 
 USER root
 
