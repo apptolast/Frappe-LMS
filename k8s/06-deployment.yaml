@@ -112,6 +112,22 @@ spec:
               else
                 echo "Assets ya compilados"
               fi
+
+              # Reemplazar symlinks con directorios reales para que nginx pueda servir assets
+              # (nginx no tiene acceso al directorio /apps/)
+              echo "Copiando assets para nginx..."
+              cd /home/frappe/frappe-bench
+              for app in frappe erpnext lms payments education; do
+                if [ -L "sites/assets/$app" ]; then
+                  target=$(readlink -f "sites/assets/$app")
+                  if [ -d "$target" ]; then
+                    rm "sites/assets/$app"
+                    cp -r "$target" "sites/assets/$app"
+                    echo "Copiado: $app"
+                  fi
+                fi
+              done
+              echo "Assets copiados correctamente"
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -237,11 +253,11 @@ spec:
               mountPath: /home/frappe/frappe-bench/logs
           resources:
             requests:
-              memory: "1Gi"
-              cpu: "200m"
-            limits:
               memory: "2Gi"
-              cpu: "1000m"
+              cpu: "500m"
+            limits:
+              memory: "6Gi"
+              cpu: "2000m"
           livenessProbe:
             httpGet:
               path: /api/method/ping

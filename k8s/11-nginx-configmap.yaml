@@ -36,10 +36,11 @@ data:
         add_header X-Content-Type-Options nosniff;
         add_header X-XSS-Protection "1; mode=block";
 
-        # Assets estáticos
+        # Assets estáticos - servidos directamente por nginx
+        # (los symlinks se reemplazan con directorios reales en el init container)
         location /assets {
             try_files $uri =404;
-            add_header Cache-Control "max-age=31536000";
+            add_header Cache-Control "public, max-age=31536000";
         }
 
         location ~ ^/protected/(.*) {
