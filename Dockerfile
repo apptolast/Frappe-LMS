@@ -41,13 +41,15 @@ WORKDIR /home/frappe/frappe-bench
 # Configurar el site
 RUN echo "{}" > sites/common_site_config.json
 
-# Instalar dependencias de Node.js para todas las apps
-# Esto es necesario antes de hacer bench build
-RUN bench setup requirements --node
-
-# Build de assets (JavaScript/CSS) para todas las apps
-# Esto es necesario para que ERPNext, Education, etc. funcionen correctamente
-RUN bench build --production || bench build
+# Instalar dependencias de Node.js para todas las apps y compilar assets
+# Aumentamos la memoria de Node.js para evitar OOM durante el build
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+RUN bench setup requirements --node && \
+    cd apps/frappe && yarn install && cd ../.. && \
+    cd apps/erpnext && yarn install && cd ../.. && \
+    cd apps/lms && yarn install && cd ../.. && \
+    cd apps/education && yarn install && cd ../.. && \
+    bench build --production
 
 # Limpiar directorios .git para reducir tamaño
 RUN find apps -mindepth 1 -path "*/.git" | xargs rm -fr
