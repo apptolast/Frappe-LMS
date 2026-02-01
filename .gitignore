@@ -102,3 +102,6 @@ coverage.xml
 *.bak
 *.backup
 .cache/
+
+# Kubectl cache (accidentally committed)
+200/
