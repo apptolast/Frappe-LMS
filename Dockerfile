@@ -41,6 +41,10 @@ WORKDIR /home/frappe/frappe-bench
 # Configurar el site
 RUN echo "{}" > sites/common_site_config.json
 
+# Build de assets (JavaScript/CSS) para todas las apps
+# Esto es necesario para que ERPNext, Education, etc. funcionen correctamente
+RUN bench build --production
+
 # Limpiar directorios .git para reducir tamaño
 RUN find apps -mindepth 1 -path "*/.git" | xargs rm -fr
 
