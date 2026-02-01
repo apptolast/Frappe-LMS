@@ -89,7 +89,9 @@ spec:
                   --db-host mariadb-frappe-lms \
                   --no-mariadb-socket
 
+                bench --site lms.localhost install-app erpnext
                 bench --site lms.localhost install-app lms
+                bench --site lms.localhost install-app education
                 bench --site lms.localhost set-config developer_mode 0
                 bench use lms.localhost
                 echo "Site creado exitosamente"
@@ -122,11 +124,11 @@ spec:
               readOnly: true
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "100m"
-            limits:
               memory: "512Mi"
-              cpu: "500m"
+              cpu: "200m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
       containers:
         # Nginx para servir assets estáticos
         - name: nginx
@@ -226,10 +228,10 @@ spec:
               mountPath: /home/frappe/frappe-bench/logs
           resources:
             requests:
-              memory: "512Mi"
+              memory: "1Gi"
               cpu: "200m"
             limits:
-              memory: "1Gi"
+              memory: "2Gi"
               cpu: "1000m"
           livenessProbe:
             httpGet:
